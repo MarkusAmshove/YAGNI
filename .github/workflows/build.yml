@@ -1,0 +1,38 @@
+name: YAGNI Build
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 3.1.101
+    - name: Install dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+    - name: Test
+      run: .\build.ps1 GithubCoverage
+    - name: Collect testresults
+      uses: MirrorNG/nunit-reporter@v1.0.9
+      if: always()
+      with:
+        path: Output/TestResults.xml
+        access-token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Collect Coverage
+      uses: 5monkeys/cobertura-action@master
+      if: always()
+      with:
+        path: Output/Cobertura.xml
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        minimum_coverage: 75

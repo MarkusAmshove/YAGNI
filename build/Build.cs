@@ -1,20 +1,16 @@
-using System;
-using System.Linq;
+using Nuke.CoberturaConverter;
 using Nuke.Common;
 using Nuke.Common.Execution;
 using Nuke.Common.Git;
 using Nuke.Common.IO;
 using Nuke.Common.ProjectModel;
-using Nuke.Common.Tooling;
 using Nuke.Common.Tools.Coverlet;
 using Nuke.Common.Tools.DotCover;
 using Nuke.Common.Tools.DotNet;
-using Nuke.Common.Utilities;
 using Nuke.Common.Utilities.Collections;
-using static Nuke.Common.EnvironmentInfo;
 using static Nuke.Common.IO.FileSystemTasks;
-using static Nuke.Common.IO.PathConstruction;
 using static Nuke.Common.Tools.DotNet.DotNetTasks;
+using static Nuke.CoberturaConverter.CoberturaConverterTasks;
 
 namespace YAGNI.Build
 {
@@ -76,21 +72,58 @@ namespace YAGNI.Build
                     .EnableNoRestore()
                     .EnableCollectCoverage()
                     .SetResultsDirectory(OutputDirectory)
-                    .SetLogger("console;verbosity=detailed"));
+                    .SetLogger(NUnitLoggerConfiguration));
+            });
 
-
+        Target GithubCoverage => _ => _
+            .DependsOn(Compile)
+            .Executes(async () =>
+            {
+                try
+                {
+                    RunCoverage("DetailedXml", "xml");
+                }
+                finally
+                {
+                    await DotCoverToCobertura(s => s
+                        .SetInputFile(OutputDirectory / "Coverage.xml")
+                        .SetOutputFile(OutputDirectory / "Cobertura.xml"));
+                }
             });
 
         Target Coverage => _ => _
             .DependsOn(Compile)
             .Executes(() =>
             {
-                DotCoverTasks.DotCoverCover(s => s
-                    .SetConfiguration("/ReportType=DetailedXml")
-                    .SetTargetExecutable(DotNetPath)
-                    .SetTargetArguments($"test {Solution}")
-                    .AddFilters("+:type=YAGNI.*")
-                    .SetOutputFile(OutputDirectory / "Coverage.xml"));
+                RunCoverage("HTML", "html");
             });
+
+        Target PackApplication => _ => _
+            .Executes(() =>
+            {
+                var publishPath = OutputDirectory / "YAGNI";
+                EnsureCleanDirectory(publishPath);
+
+                DotNetPublish(s => s
+                    .SetProject(SourceDirectory / "YAGNI" / "YAGNI.csproj")
+                    .SetConfiguration(Configuration.Release)
+                    .SetOutput(publishPath)
+                    .SetSelfContained(true)
+                    .SetRuntime("win-x64"));
+
+                var zipFilePath = OutputDirectory / "YAGNI.zip";
+                FileSystemTasks.DeleteFile(zipFilePath);
+                CompressionTasks.Compress(publishPath, zipFilePath);
+            });
+
+        void RunCoverage(string reportType, string extension) =>
+            DotCoverTasks.DotCoverCover(s => s
+                .SetConfiguration($"/ReportType={reportType}")
+                .SetTargetExecutable(DotNetPath)
+                .SetTargetArguments($"test {Solution} --logger=\"{NUnitLoggerConfiguration}\"")
+                .AddFilters("+:type=YAGNI.*")
+                .SetOutputFile(OutputDirectory / $"Coverage.{extension}"));
+
+        string NUnitLoggerConfiguration => $"nunit;LogFilePath={OutputDirectory}/TestResults.xml";
     }
 }
