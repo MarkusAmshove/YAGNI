@@ -93,9 +93,23 @@ namespace YAGNI.Build
 
         Target Coverage => _ => _
             .DependsOn(Compile)
-            .Executes(async () =>
+            .Executes(() =>
             {
                 RunCoverage("HTML", "html");
+            });
+
+        Target PackApplication => _ => _
+            .Executes(() =>
+            {
+                var publishPath = OutputDirectory / "YAGNI";
+                EnsureCleanDirectory(publishPath);
+
+                DotNetPublish(s => s
+                    .SetProject(SourceDirectory / "YAGNI" / "YAGNI.csproj")
+                    .SetConfiguration(Configuration.Release)
+                    .SetOutput(publishPath));
+
+                CompressionTasks.Compress(publishPath, OutputDirectory / "YAGNI.zip");
             });
 
         void RunCoverage(string reportType, string extension) =>
