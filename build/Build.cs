@@ -107,9 +107,13 @@ namespace YAGNI.Build
                 DotNetPublish(s => s
                     .SetProject(SourceDirectory / "YAGNI" / "YAGNI.csproj")
                     .SetConfiguration(Configuration.Release)
-                    .SetOutput(publishPath));
+                    .SetOutput(publishPath)
+                    .SetSelfContained(true)
+                    .SetRuntime("win-x64"));
 
-                CompressionTasks.Compress(publishPath, OutputDirectory / "YAGNI.zip");
+                var zipFilePath = OutputDirectory / "YAGNI.zip";
+                FileSystemTasks.DeleteFile(zipFilePath);
+                CompressionTasks.Compress(publishPath, zipFilePath);
             });
 
         void RunCoverage(string reportType, string extension) =>
