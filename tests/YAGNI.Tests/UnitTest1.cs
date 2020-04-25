@@ -12,7 +12,8 @@ namespace YAGNI.Tests
         [Test]
         public void Test1()
         {
-            Assert.AreEqual(2, 4);
+            var sut = new DummyClass();
+            Assert.AreEqual(-4, sut.Add(2, 2));
         }
     }
 }
