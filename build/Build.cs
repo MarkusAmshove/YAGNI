@@ -76,9 +76,7 @@ namespace YAGNI.Build
                     .EnableNoRestore()
                     .EnableCollectCoverage()
                     .SetResultsDirectory(OutputDirectory)
-                    .SetLogger("console;verbosity=detailed"));
-
-
+                    .SetLogger($"nunit;LogFilePath={OutputDirectory}/TestResults.xml"));
             });
 
         Target Coverage => _ => _
