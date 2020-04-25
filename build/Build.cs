@@ -75,18 +75,13 @@ namespace YAGNI.Build
                     .SetLogger(NUnitLoggerConfiguration));
             });
 
-        Target Coverage => _ => _
+        Target GithubCoverage => _ => _
             .DependsOn(Compile)
             .Executes(async () =>
             {
                 try
                 {
-                    DotCoverTasks.DotCoverCover(s => s
-                        .SetConfiguration("/ReportType=DetailedXml")
-                        .SetTargetExecutable(DotNetPath)
-                        .SetTargetArguments($"test {Solution} --logger=\"{NUnitLoggerConfiguration}\"")
-                        .AddFilters("+:type=YAGNI.*")
-                        .SetOutputFile(OutputDirectory / "Coverage.xml"));
+                    RunCoverage("DetailedXml", "xml");
                 }
                 finally
                 {
@@ -95,6 +90,21 @@ namespace YAGNI.Build
                         .SetOutputFile(OutputDirectory / "Cobertura.xml"));
                 }
             });
+
+        Target Coverage => _ => _
+            .DependsOn(Compile)
+            .Executes(async () =>
+            {
+                RunCoverage("HTML", "html");
+            });
+
+        void RunCoverage(string reportType, string extension) =>
+            DotCoverTasks.DotCoverCover(s => s
+                .SetConfiguration($"/ReportType={reportType}")
+                .SetTargetExecutable(DotNetPath)
+                .SetTargetArguments($"test {Solution} --logger=\"{NUnitLoggerConfiguration}\"")
+                .AddFilters("+:type=YAGNI.*")
+                .SetOutputFile(OutputDirectory / $"Coverage.{extension}"));
 
         string NUnitLoggerConfiguration => $"nunit;LogFilePath={OutputDirectory}/TestResults.xml";
     }

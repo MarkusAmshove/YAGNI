@@ -22,7 +22,7 @@ jobs:
     - name: Build
       run: dotnet build --configuration Release --no-restore
     - name: Test
-      run: .\build.ps1 Coverage
+      run: .\build.ps1 GithubCoverage
     - name: Collect testresults
       uses: MirrorNG/nunit-reporter@v1.0.9
       if: always()
