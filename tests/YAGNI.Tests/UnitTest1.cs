@@ -12,7 +12,7 @@ namespace YAGNI.Tests
         [Test]
         public void Test1()
         {
-            Assert.Pass();
+            Assert.Equals(2, 4);
         }
     }
 }
