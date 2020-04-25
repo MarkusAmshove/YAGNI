@@ -22,10 +22,16 @@ jobs:
     - name: Build
       run: dotnet build --configuration Release --no-restore
     - name: Test
-      run: .\build.ps1 Test
+      run: .\build.ps1 Coverage
     - name: Collect testresults
       uses: MirrorNG/nunit-reporter@v1.0.9
       if: always()
       with:
         path: Output/TestResults.xml
         access-token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Collect Coverage
+      uses: 5monkeys/cobertura-action@master
+      with:
+        path: Output/Cobertura.xml
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        minimum_coverage: 75

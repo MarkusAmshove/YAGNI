@@ -1,20 +1,16 @@
-using System;
-using System.Linq;
+using Nuke.CoberturaConverter;
 using Nuke.Common;
 using Nuke.Common.Execution;
 using Nuke.Common.Git;
 using Nuke.Common.IO;
 using Nuke.Common.ProjectModel;
-using Nuke.Common.Tooling;
 using Nuke.Common.Tools.Coverlet;
 using Nuke.Common.Tools.DotCover;
 using Nuke.Common.Tools.DotNet;
-using Nuke.Common.Utilities;
 using Nuke.Common.Utilities.Collections;
-using static Nuke.Common.EnvironmentInfo;
 using static Nuke.Common.IO.FileSystemTasks;
-using static Nuke.Common.IO.PathConstruction;
 using static Nuke.Common.Tools.DotNet.DotNetTasks;
+using static Nuke.CoberturaConverter.CoberturaConverterTasks;
 
 namespace YAGNI.Build
 {
@@ -76,19 +72,30 @@ namespace YAGNI.Build
                     .EnableNoRestore()
                     .EnableCollectCoverage()
                     .SetResultsDirectory(OutputDirectory)
-                    .SetLogger($"nunit;LogFilePath={OutputDirectory}/TestResults.xml"));
+                    .SetLogger(NUnitLoggerConfiguration));
             });
 
         Target Coverage => _ => _
             .DependsOn(Compile)
-            .Executes(() =>
+            .Executes(async () =>
             {
-                DotCoverTasks.DotCoverCover(s => s
-                    .SetConfiguration("/ReportType=DetailedXml")
-                    .SetTargetExecutable(DotNetPath)
-                    .SetTargetArguments($"test {Solution}")
-                    .AddFilters("+:type=YAGNI.*")
-                    .SetOutputFile(OutputDirectory / "Coverage.xml"));
+                try
+                {
+                    DotCoverTasks.DotCoverCover(s => s
+                        .SetConfiguration("/ReportType=DetailedXml")
+                        .SetTargetExecutable(DotNetPath)
+                        .SetTargetArguments($"test {Solution} --logger=\"{NUnitLoggerConfiguration}\"")
+                        .AddFilters("+:type=YAGNI.*")
+                        .SetOutputFile(OutputDirectory / "Coverage.xml"));
+                }
+                finally
+                {
+                    await DotCoverToCobertura(s => s
+                        .SetInputFile(OutputDirectory / "Coverage.xml")
+                        .SetOutputFile(OutputDirectory / "Cobertura.xml"));
+                }
             });
+
+        string NUnitLoggerConfiguration => $"nunit;LogFilePath={OutputDirectory}/TestResults.xml";
     }
 }
